@@ -71,10 +71,10 @@ def adjacency_dict (list1, list2):
         x, y = list1 [idx], list2 [idx]
         
         # confirm x & y are in d. if not, initialize to empty list
-        if x not in d: d [x] = [] 
-        if y not in d: d [y] = [] 
+        if x not in d: d [x] = set ()
+        if y not in d: d [y] = set ()
         
         # Add x & y as neighbors, but first making sure the info is new and not redundant
-        if y not in d [x]: d[x].append (y)
-        if x not in d [y]: d[y].append (x)
+        if y not in d [x]: d [x].add (y)
+        if x not in d [y]: d [y].add (x)
     return d
