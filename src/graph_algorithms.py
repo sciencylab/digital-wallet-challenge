@@ -62,6 +62,10 @@ class Graph:
 
         2. transactions = distance (49466, 2706) should return 4.
         """
+        # check if a == b
+        if a == b:
+            return 0
+        
         if n < 0:
             n = self.length
         
@@ -95,6 +99,52 @@ class Graph:
             visited.update (friends)
 
         return -1
+    
+    def distance_lt_n (self, a, b, n):
+        """
+        Note: distance_lt_n "(if) distance is less than n."
+        
+        From adjacency list 'self.graph', this figures out whether 'a' and 'b' are neighbors 
+        of degree fewer than 'n.'
+
+        If neighbors of degree <= n, outputs True; otherwise, False.
+        """
+        # check if a == b
+        if a == b:
+            return 0
+        
+        assert n >= 0, "Need a n >= 0"
+        
+        # check to see if both nodes are in graph
+        if a not in self.graph.keys () or b not in self.graph.keys ():
+            return False
+
+        # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
+        friends = set ([a])
+
+        # initializing the set of visited nodes. 'a' is included as it is degree 0 separated
+        #     from 'a' itself.
+        visited = friends 
+
+        # begin loop
+        for k in range (n):
+
+            # If there are no more elements in 'friends,' then that means all nodes have been
+            #     visited already. So, return False
+            if len (friends) == 0:
+                return False
+
+            # caculate next degree neighbors & remove those that have already been seen
+            friends = self.next_degree_friends (friends) - visited
+
+            # If b is in this list of friends, then deg_separation (a, b) = k + 1
+            if b in friends:
+                return True
+
+            # add to the set 'visited' the new elements in 'friends'
+            visited.update (friends)
+
+        return False
 
 
     def degree_list (self, start, upto = -1):
@@ -178,12 +228,14 @@ class Graph:
         if x in self.graph:
             self.graph [x].add (y)
         else:
+            #print ('New node ', x, 'graph length: ', self.length)
             self.length += 1
             self.graph [x] = {y}
 
         if y in self.graph:
             self.graph [y].add (x)
         else:
+            #print ('New node ', y, 'graph length: ', self.length)
             self.length += 1
             self.graph [y] = {x}
 
