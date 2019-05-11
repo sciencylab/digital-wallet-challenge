@@ -11,19 +11,24 @@ class Graph:
     7. add_edges (self, edges)
     8. add_edge (self, edge)
     9. is_self_consistent (self)
-    10. rebuild_higher_order_adj_lists (self)
+    10. build_higher_order_adj_lists (self)
+    11. copy (self)
     """
     
     
     def __init__ (self, adj_dict = {}):
         self.num_nodes = len (adj_dict.keys ())
-        self.adj_1 = adj_dict
-        self.adj_2 = next_order_adj_list (self.adj_1)
-        self.adj_3 = next_order_adj_list (self.adj_2)
-        self.adj_4 = next_order_adj_list (self.adj_3)
+        
+        # exclusive 1st order adjacency list
+        self.adj = adj_dict
+        
+        # inclusive higher order adjacency lists
+        self.adj_1 = {}
+        self.adj_2 = {}
+        self.adj_4 = {}
             
     def __str__ (self):
-        return str (self.adj_1)
+        return str (self.adj)
     
     def __repr__ (self):
         return self.__str__ ()
@@ -229,19 +234,19 @@ class Graph:
         x, y = edge
 
         # add y to x
-        if x in self.adj_1:
-            self.adj_1 [x].add (y)
+        if x in self.adj:
+            self.adj [x].add (y)
         else:
             #print ('New node ', x, 'graph length: ', self.num_nodes)
             self.num_nodes += 1
-            self.adj_1 [x] = {y}
+            self.adj [x] = {y}
 
-        if y in self.adj_1:
-            self.adj_1 [y].add (x)
+        if y in self.adj:
+            self.adj [y].add (x)
         else:
             #print ('New node ', y, 'graph length: ', self.num_nodes)
             self.num_nodes += 1
-            self.adj_1 [y] = {x}
+            self.adj [y] = {x}
 
     
     def is_self_consistent (self):
@@ -249,24 +254,44 @@ class Graph:
         Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj_list' and
         any nodes x, y of G, y is in adj_list [x] iff x is in adj_list [y].
         """
-        for adj_list in [self.adj_1, self.adj_2, self.adj_3, self.adj_4]:
+        for adj_list in [self.adj, self.adj_1, self.adj_2, self.adj_4]:
             for key in adj_list.keys ():
                 for elem in adj_list [key]:
                     if key not in adj_list [elem]:
                         return False
         return True
     
-    def rebuild_higher_order_adj_lists (self):
+    def build_adj (self):
+        """
+        Builds the inclusive adjacency list from the exclusive version.
+        """
+        # just add the node itself to its adjacency list
+        for key in self.adj.keys ():
+            self.adj_1 [key] = {key} | self.adj [key]
+    
+    def build_higher_order_adj_lists (self):
         self.adj_2 = next_order_adj_list (self.adj_1)
-        self.adj_3 = next_order_adj_list (self.adj_2)
-        self.adj_4 = next_order_adj_list (self.adj_3)
+        self.adj_4 = next_order_adj_list (self.adj_2)
+        
+    def copy (self):
+        res = Graph ()
+        res.num_nodes = self.num_nodes
+        res.adj_1 = self.adj_1.copy ()
+        res.adj_2 = self.adj_2.copy ()
+        res.adj_4 = self.adj_4.copy ()
+        return res
         
 def next_order_adj_list (adj_list):
     next_adj_list = {}
     for key in adj_list.keys ():
         tmp = set ()
         for node in adj_list [key]:
-            tmp.update (adj_list [node] - adj_list [key])
-        tmp = tmp - {key}
+            # inclusive higher order adjacency list (e.g. if H is a 2nd-order
+            # adjacency list, then for node x of graph G, H [x] is the set of
+            # nodes separated from node x by degrees 1 and 2.
+            tmp.update (adj_list [node])
+            
+            # exclusive higher order adjacency version
+            # tmp.update (adj_list [node] - adj_list [key])
         next_adj_list [key] = tmp
     return next_adj_list
