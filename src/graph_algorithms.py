@@ -48,14 +48,39 @@ class Graph:
 
         # add to the set 'friends_of_friends' the neighbors of all elements of set 'friends.'
         for x in friends:
-            friends_of_friends.update (self.adj_1 [x]) # A.update (B) is the same as A union B
+            friends_of_friends.update (self.adj [x]) # A.update (B) is the same as A union B
+
+        return friends_of_friends
+
+
+    def next_degree_friends_sc (self, friends, elem):
+        """
+        Given a set of ids, 'friends,' this function outputs a new list of ids of
+        degree 1 separated from any element in 'friends' as according to the adjacency
+        list 'self.adj_1.'
+        
+        This is the shortcut (sc) version. It will return a singleton set, {elem}, if
+        'elem' is found.
+        """
+        if not isinstance (friends, set):
+            friends = set (friends)
+#        assert isinstance (friends, set), "function next_degree_friends requires that parameter 'friends' be a set."
+
+        friends_of_friends = set ()  # initialize as empty set
+
+        # add to the set 'friends_of_friends' the neighbors of all elements of set 'friends.'
+        for x in friends:
+            if elem in self.adj [x]:
+                return {elem}
+            else:
+                friends_of_friends.update (self.adj [x]) # A.update (B) is the same as A union B
 
         return friends_of_friends
 
 
     def distance (self, a, b, n = -1):
         """
-        From adjacency list 'self.adj_1', this figures out whether 'a' and 'b' are neighbors 
+        From adjacency list 'self.adj', this figures out whether 'a' and 'b' are neighbors 
         of degree fewer than 'n.'
 
         If neighbors of degree <= n, outputs 'k,' where 'k' is the degree of separation.
@@ -79,7 +104,7 @@ class Graph:
             n = self.num_nodes
         
         # check to see if both nodes are in graph
-        if a not in self.adj_1.keys () or b not in self.adj_1.keys ():
+        if a not in self.adj.keys () or b not in self.adj.keys ():
             return -1
 
         # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
@@ -113,7 +138,7 @@ class Graph:
         """
         Note: distance_lt_n "(if) distance is less than n."
         
-        From adjacency list 'self.adj_1', this figures out whether 'a' and 'b' are neighbors 
+        From adjacency list 'self.adj', this figures out whether 'a' and 'b' are neighbors 
         of degree fewer than 'n.'
 
         If neighbors of degree <= n, outputs True; otherwise, False.
@@ -125,7 +150,7 @@ class Graph:
         assert n >= 0, "Need a n >= 0"
         
         # check to see if both nodes are in graph
-        if a not in self.adj_1.keys () or b not in self.adj_1.keys ():
+        if a not in self.adj.keys () or b not in self.adj.keys ():
             return False
 
         # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
@@ -144,7 +169,8 @@ class Graph:
                 return False
 
             # caculate next degree neighbors & remove those that have already been seen
-            friends = self.next_degree_friends (friends) - visited
+            # Note: Uses shortcut version of next_degree_friends
+            friends = self.next_degree_friends_sc (friends, elem = b) - visited
 
             # If b is in this list of friends, then deg_separation (a, b) = k + 1
             if b in friends:
@@ -269,8 +295,14 @@ class Graph:
         for key in self.adj.keys ():
             self.adj_1 [key] = {key} | self.adj [key]
     
+    def build_2nd_order_adj_lists (self):
+        self.adj_2 = next_order_adj_list (self.adj)
+
+    def make_2nd_order_exclusive (self):
+        for key in self.adj_2.keys ():
+            self.adj_2 [key] = {key} | self.adj_2 [key]
+            
     def build_higher_order_adj_lists (self):
-        self.adj_2 = next_order_adj_list (self.adj_1)
         self.adj_4 = next_order_adj_list (self.adj_2)
         
     def copy (self):
@@ -295,3 +327,13 @@ def next_order_adj_list (adj_list):
             # tmp.update (adj_list [node] - adj_list [key])
         next_adj_list [key] = tmp
     return next_adj_list
+
+def multiply (A, B):
+    C = {}
+    for j in B.keys ():
+        tmp = set ()
+        for k in B [j]:
+            tmp.update (A [j])
+        C [j] = tmp
+    return C
+        
