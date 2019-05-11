@@ -13,7 +13,7 @@ class Graph:
     """
     
     
-    def __init__ (self, adj_dict):
+    def __init__ (self, adj_dict = {}):
         self.graph = adj_dict
         self.length = len (adj_dict.keys ())
             
