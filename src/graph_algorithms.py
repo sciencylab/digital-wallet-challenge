@@ -10,16 +10,20 @@ class Graph:
     6. degree_list (self, start, upto = -1)
     7. add_edges (self, edges)
     8. add_edge (self, edge)
+    9. is_self_consistent (self)
+    10. rebuild_higher_order_adj_lists (self)
     """
     
     
     def __init__ (self, adj_dict = {}):
-        self.graph = adj_dict
-        self.length = len (adj_dict.keys ())
-            
+        self.num_nodes = len (adj_dict.keys ())
+        self.adj_1 = adj_dict
+        self.adj_2 = next_order_adj_list (self.adj_1)
+        self.adj_3 = next_order_adj_list (self.adj_2)
+        self.adj_4 = next_order_adj_list (self.adj_3)
             
     def __str__ (self):
-        return str (self.graph)
+        return str (self.adj_1)
     
     def __repr__ (self):
         return self.__str__ ()
@@ -29,7 +33,7 @@ class Graph:
         """
         Given a set of ids, 'friends,' this function outputs a new list of ids of
         degree 1 separated from any element in 'friends' as according to the adjacency
-        list 'self.graph.'
+        list 'self.adj_1.'
         """
         if not isinstance (friends, set):
             friends = set (friends)
@@ -39,14 +43,14 @@ class Graph:
 
         # add to the set 'friends_of_friends' the neighbors of all elements of set 'friends.'
         for x in friends:
-            friends_of_friends.update (self.graph [x]) # A.update (B) is the same as A union B
+            friends_of_friends.update (self.adj_1 [x]) # A.update (B) is the same as A union B
 
         return friends_of_friends
 
 
     def distance (self, a, b, n = -1):
         """
-        From adjacency list 'self.graph', this figures out whether 'a' and 'b' are neighbors 
+        From adjacency list 'self.adj_1', this figures out whether 'a' and 'b' are neighbors 
         of degree fewer than 'n.'
 
         If neighbors of degree <= n, outputs 'k,' where 'k' is the degree of separation.
@@ -67,10 +71,10 @@ class Graph:
             return 0
         
         if n < 0:
-            n = self.length
+            n = self.num_nodes
         
         # check to see if both nodes are in graph
-        if a not in self.graph.keys () or b not in self.graph.keys ():
+        if a not in self.adj_1.keys () or b not in self.adj_1.keys ():
             return -1
 
         # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
@@ -104,7 +108,7 @@ class Graph:
         """
         Note: distance_lt_n "(if) distance is less than n."
         
-        From adjacency list 'self.graph', this figures out whether 'a' and 'b' are neighbors 
+        From adjacency list 'self.adj_1', this figures out whether 'a' and 'b' are neighbors 
         of degree fewer than 'n.'
 
         If neighbors of degree <= n, outputs True; otherwise, False.
@@ -116,7 +120,7 @@ class Graph:
         assert n >= 0, "Need a n >= 0"
         
         # check to see if both nodes are in graph
-        if a not in self.graph.keys () or b not in self.graph.keys ():
+        if a not in self.adj_1.keys () or b not in self.adj_1.keys ():
             return False
 
         # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
@@ -150,7 +154,7 @@ class Graph:
     def degree_list (self, start, upto = -1):
         """
         Calculates the degree of separation for all nodes (up to degree 'upto') connected
-        to node 'start' as according to the adjacency list 'self.graph.'
+        to node 'start' as according to the adjacency list 'self.adj_1.'
 
         Outputs a list 'deg,' where the n-th element is a set containing all nodes of degree of
         separation 'n' away from node 'start'. If node 'elem' is degree 2 away from node
@@ -158,21 +162,21 @@ class Graph:
 
         The optional parameter 'upto' is to indicate how many degrees of separation to search up to.
         If a negative integer is provided, it will attempt to travers the entire graph as provided
-        by the adjacency list 'self.graph.'
+        by the adjacency list 'self.adj_1.'
         
-        If 'start' is not in 'self.graph,' then return empty list
+        If 'start' is not in 'self.adj_1,' then return empty list
         """
         
         # check to see if both nodes are in graph
-        if start not in self.graph.keys ():
+        if start not in self.adj_1.keys ():
             return []
 
         # Requires that start be a node in adj_dict, else throw exception
-        assert start in self.graph.keys (), "node start is a node in self.graph."
+        assert start in self.adj_1.keys (), "node start is a node in self.adj_1."
 
         # If upto is negative, replace w/ the total number of nodes in 'adj_dict.'
         if upto < 0:
-            upto = self.length
+            upto = self.num_nodes
 
         # If 'start' is a single integer, e.g. 42352, and not a set of integers, then convert it
         #    to a set, i.e. {42352}.
@@ -217,7 +221,7 @@ class Graph:
        
     def add_edge (self, edge):
         """
-        Adds an edge = (x, y) pair to the adjacency list self.graph.
+        Adds an edge = (x, y) pair to the adjacency list self.adj_1.
         """
         
         assert len (edge) == 2, "Each edge needs to be of length 2."
@@ -225,18 +229,44 @@ class Graph:
         x, y = edge
 
         # add y to x
-        if x in self.graph:
-            self.graph [x].add (y)
+        if x in self.adj_1:
+            self.adj_1 [x].add (y)
         else:
-            #print ('New node ', x, 'graph length: ', self.length)
-            self.length += 1
-            self.graph [x] = {y}
+            #print ('New node ', x, 'graph length: ', self.num_nodes)
+            self.num_nodes += 1
+            self.adj_1 [x] = {y}
 
-        if y in self.graph:
-            self.graph [y].add (x)
+        if y in self.adj_1:
+            self.adj_1 [y].add (x)
         else:
-            #print ('New node ', y, 'graph length: ', self.length)
-            self.length += 1
-            self.graph [y] = {x}
+            #print ('New node ', y, 'graph length: ', self.num_nodes)
+            self.num_nodes += 1
+            self.adj_1 [y] = {x}
 
     
+    def is_self_consistent (self):
+        """
+        Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj_list' and
+        any nodes x, y of G, y is in adj_list [x] iff x is in adj_list [y].
+        """
+        for adj_list in [self.adj_1, self.adj_2, self.adj_3, self.adj_4]:
+            for key in adj_list.keys ():
+                for elem in adj_list [key]:
+                    if key not in adj_list [elem]:
+                        return False
+        return True
+    
+    def rebuild_higher_order_adj_lists (self):
+        self.adj_2 = next_order_adj_list (self.adj_1)
+        self.adj_3 = next_order_adj_list (self.adj_2)
+        self.adj_4 = next_order_adj_list (self.adj_3)
+        
+def next_order_adj_list (adj_list):
+    next_adj_list = {}
+    for key in adj_list.keys ():
+        tmp = set ()
+        for node in adj_list [key]:
+            tmp.update (adj_list [node] - adj_list [key])
+        tmp = tmp - {key}
+        next_adj_list [key] = tmp
+    return next_adj_list
