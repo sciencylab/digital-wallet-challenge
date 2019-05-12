@@ -1,3 +1,5 @@
+import gc
+
 class Graph:
     """
     list of functions/procedures:
@@ -14,9 +16,10 @@ class Graph:
     10. is_self_consistent (self)
     11. build_adj (self)
     12. copy (self)
-    13. if_lte_deg2 (self, pair)
-    14. if_lte_deg4 (self, pair)
-    15. is_inclusive (self)
+    13. if_lte_deg1 (self, pair)
+    14. if_lte_deg2 (self, pair)
+    15. if_lte_deg4 (self, pair)
+    16. is_inclusive (self)
     """
     
     
@@ -114,7 +117,9 @@ class Graph:
             n = self.num_nodes
         
         # check to see if both nodes are in graph
-        if a not in self.adj.keys () or b not in self.adj.keys ():
+        if a not in self.adj.keys ():
+            return -1
+        elif b not in self.adj.keys ():
             return -1
 
         # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
@@ -157,12 +162,14 @@ class Graph:
         
         # check if a == b
         if a == b:
-            return 0
+            return True
         
         assert n >= 0, "Need a n >= 0"
         
         # check to see if both nodes are in graph
-        if a not in self.adj.keys () or b not in self.adj.keys ():
+        if a not in self.adj.keys ():
+            return False
+        elif b not in self.adj.keys ():
             return False
 
         # while 'a' is a single node, the algorithm requires a set, so 'a' is converted.
@@ -212,34 +219,42 @@ class Graph:
         assert len (edge) == 2, "Each edge needs to be of length 2."
 
         x, y = edge
+        xy_not_adj = False
         
         # corrections to first order adjacency list
         # add y to x
         if x in self.adj:
-            self.adj [x].add (y)
-            self.adj2 [x].add (y)
+            if y not in self.adj [x]:
+                xy_not_adj = True
+                self.adj [x].add (y)
+                self.adj2 [x].add (y)
         else: # x in neither adj nor adj2
+            xy_not_adj = True
             self.num_nodes += 1
             self.adj [x]  = {x, y}
             self.adj2 [x] = {x, y}
         
         # add x to y
         if y in self.adj:
-            self.adj [y].add (x)
-            self.adj [x].add (y)
+            if xy_not_adj:
+                self.adj [y].add (x)
+                self.adj [x].add (y)
         else: # y in neither adj nor adj2
+            xy_not_adj = True
             self.num_nodes += 1
             self.adj [y]  = {x, y}
             self.adj2 [y] = {x, y}
 
         # corrections to 2nd order adjacency list
-        self.adj2 [x].update (self.adj [y])
-        self.adj2 [y].update (self.adj [x])
-        for key in self.adj [x]:
-            self.adj2 [key].add (y)
-        for key in self.adj [y]:
-            self.adj2 [key].add (x)
-    
+        if xy_not_adj:
+            self.adj2 [x].update (self.adj [y])
+            self.adj2 [y].update (self.adj [x])
+            for key in self.adj [x]:
+                self.adj2 [key].add (y)
+            for key in self.adj [y]:
+                self.adj2 [key].add (x)
+        gc.collect (2)
+        
     def is_self_consistent (self):
         """
         Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj_list' and
@@ -275,12 +290,28 @@ class Graph:
         res.adj2 = self.adj2.copy ()
         return res
 
+
+    def if_lte_deg1 (self, pair):
+        a, b = pair
+
+        if a == b:
+            return True
+        elif a not in self.adj.keys ():
+            return False
+        elif b not in self.adj.keys ():
+            return False
+        else:
+            return a in self.adj [b]
+        
+        
     def if_lte_deg2 (self, pair):
         a, b = pair
 
         if a == b:
             return True
-        elif a not in self.adj.keys () or b not in self.adj.keys (): # >= one of (a, b) is not a node in graph 'adj'
+        elif a not in self.adj.keys ():
+            return False
+        elif b not in self.adj.keys ():
             return False
         else:
             # since adj2 is inclusive, this will return true if dist(a,b) <= 2
@@ -292,7 +323,9 @@ class Graph:
 
         if a == b:
             return True
-        elif a not in self.adj.keys () or b not in self.adj.keys ():  # >= one of (a, b) is not a node in graph 'adj'
+        elif a not in self.adj.keys ():
+            return False
+        elif b not in self.adj.keys ():
             return False
         elif a in self.adj2 [b]:  # a & b are deg 2 apart or fewer
             return True
