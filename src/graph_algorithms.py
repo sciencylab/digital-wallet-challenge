@@ -7,8 +7,8 @@ class Graph:
     3. __repr__ (self)
     4. next_degree_friends (self, friends)
     5. next_degree_friends_sc (self, friends, elem)
-    6. distance (self, a, b, n = -1)
-    7. distance_lte (self, a, b, n)
+    6. distance (self, pair, n = -1)
+    7. distance_lte (self, pair, n)
     8. add_edges (self, edges)
     9. add_edge (self, edge)
     10. is_self_consistent (self)
@@ -26,8 +26,11 @@ class Graph:
         # exclusive 1st order adjacency list
         self.adj = adj_dict
         
-        # 2nd order adjacency lists
+        # 2nd order adjacency list
         self.adj2 = {}
+        
+        # build the 2 adjacency lists
+        self.build_adj ()
             
     def __str__ (self):
         return str (self.adj)
@@ -83,9 +86,9 @@ class Graph:
         return friends_of_friends
 
 
-    def distance (self, a, b, n = -1):
+    def distance (self, pair, n = -1):
         """
-        From adjacency list 'self.adj', this figures out whether 'a' and 'b' are neighbors 
+        From adjacency list 'self.adj', this figures out whether the pair '(a, b)' are neighbors 
         of degree fewer than 'n.'
 
         If neighbors of degree <= n, outputs 'k,' where 'k' is the degree of separation.
@@ -101,6 +104,8 @@ class Graph:
 
         2. transactions = distance (49466, 2706) should return 4.
         """
+        a, b = pair
+        
         # check if a == b
         if a == b:
             return 0
@@ -139,15 +144,17 @@ class Graph:
 
         return -1
     
-    def distance_lte (self, a, b, n):
+    def distance_lte (self, pair, n):
         """
         Note: distance_lte "(if) distance is less than n."
         
-        From adjacency list 'self.adj', this figures out whether 'a' and 'b' are neighbors 
+        From adjacency list 'self.adj', this figures out whether the pair '(a, b)' are neighbors 
         of degree fewer than 'n.'
 
         If neighbors of degree <= n, outputs True; otherwise, False.
         """
+        a, b = pair
+        
         # check if a == b
         if a == b:
             return 0
@@ -210,22 +217,28 @@ class Graph:
         # add y to x
         if x in self.adj:
             self.adj [x].add (y)
-        else:
-            #print ('New node ', x, 'graph length: ', self.num_nodes)
+            self.adj2 [x].add (y)
+        else: # x in neither adj nor adj2
             self.num_nodes += 1
-            self.adj [x] = {y}
+            self.adj [x]  = {x, y}
+            self.adj2 [x] = {x, y}
+        
         # add x to y
         if y in self.adj:
             self.adj [y].add (x)
-        else:
-            #print ('New node ', y, 'graph length: ', self.num_nodes)
+            self.adj [x].add (y)
+        else: # y in neither adj nor adj2
             self.num_nodes += 1
-            self.adj [y] = {x}
+            self.adj [y]  = {x, y}
+            self.adj2 [y] = {x, y}
 
         # corrections to 2nd order adjacency list
         self.adj2 [x].update (self.adj [y])
         self.adj2 [y].update (self.adj [x])
-        
+        for key in self.adj [x]:
+            self.adj2 [key].add (y)
+        for key in self.adj [y]:
+            self.adj2 [key].add (x)
     
     def is_self_consistent (self):
         """
