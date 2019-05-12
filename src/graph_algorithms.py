@@ -6,13 +6,17 @@ class Graph:
     2. __str__ (self)
     3. __repr__ (self)
     4. next_degree_friends (self, friends)
-    5. distance (self, a, b, n = -1)
-    6. degree_list (self, start, upto = -1)
-    7. add_edges (self, edges)
-    8. add_edge (self, edge)
-    9. is_self_consistent (self)
-    10. build_higher_order_adj_lists (self)
-    11. copy (self)
+    5. next_degree_friends_sc (self, friends, elem)
+    6. distance (self, a, b, n = -1)
+    7. distance_lte (self, a, b, n)
+    8. add_edges (self, edges)
+    9. add_edge (self, edge)
+    10. is_self_consistent (self)
+    11. build_adj (self)
+    12. copy (self)
+    13. if_lte_deg2 (self, pair)
+    14. if_lte_deg4 (self, pair)
+    15. is_inclusive (self)
     """
     
     
@@ -22,10 +26,8 @@ class Graph:
         # exclusive 1st order adjacency list
         self.adj = adj_dict
         
-        # inclusive higher order adjacency lists
-        self.adj_1 = {}
-        self.adj_2 = {}
-        self.adj_4 = {}
+        # 2nd order adjacency lists
+        self.adj2 = {}
             
     def __str__ (self):
         return str (self.adj)
@@ -38,7 +40,9 @@ class Graph:
         """
         Given a set of ids, 'friends,' this function outputs a new list of ids of
         degree 1 separated from any element in 'friends' as according to the adjacency
-        list 'self.adj_1.'
+        list 'self.adj.'
+        
+        Outputs a set, the friends of friends.
         """
         if not isinstance (friends, set):
             friends = set (friends)
@@ -57,9 +61,10 @@ class Graph:
         """
         Given a set of ids, 'friends,' this function outputs a new list of ids of
         degree 1 separated from any element in 'friends' as according to the adjacency
-        list 'self.adj_1.'
+        list 'self.adj.'
         
-        This is the shortcut (sc) version. It will return a singleton set, {elem}, if
+        Outputs a set, the friends of friends.
+        Note: This is the shortcut (sc) version. It will return a singleton set, {elem}, if
         'elem' is found.
         """
         if not isinstance (friends, set):
@@ -134,9 +139,9 @@ class Graph:
 
         return -1
     
-    def distance_lt_n (self, a, b, n):
+    def distance_lte (self, a, b, n):
         """
-        Note: distance_lt_n "(if) distance is less than n."
+        Note: distance_lte "(if) distance is less than n."
         
         From adjacency list 'self.adj', this figures out whether 'a' and 'b' are neighbors 
         of degree fewer than 'n.'
@@ -182,65 +187,7 @@ class Graph:
         return False
 
 
-    def degree_list (self, start, upto = -1):
-        """
-        Calculates the degree of separation for all nodes (up to degree 'upto') connected
-        to node 'start' as according to the adjacency list 'self.adj_1.'
-
-        Outputs a list 'deg,' where the n-th element is a set containing all nodes of degree of
-        separation 'n' away from node 'start'. If node 'elem' is degree 2 away from node
-        'start,' then 'elem' will be contained in the set 'deg [2]' and no other.
-
-        The optional parameter 'upto' is to indicate how many degrees of separation to search up to.
-        If a negative integer is provided, it will attempt to travers the entire graph as provided
-        by the adjacency list 'self.adj_1.'
-        
-        If 'start' is not in 'self.adj_1,' then return empty list
-        """
-        
-        # check to see if both nodes are in graph
-        if start not in self.adj_1.keys ():
-            return []
-
-        # Requires that start be a node in adj_dict, else throw exception
-        assert start in self.adj_1.keys (), "node start is a node in self.adj_1."
-
-        # If upto is negative, replace w/ the total number of nodes in 'adj_dict.'
-        if upto < 0:
-            upto = self.num_nodes
-
-        # If 'start' is a single integer, e.g. 42352, and not a set of integers, then convert it
-        #    to a set, i.e. {42352}.
-        if not isinstance (start, set):
-            friends = set ([start])
-
-        # visited nodes
-        visited = friends.copy ()
-
-        # degree friends with node 'start'
-        deg = list ()
-        deg.append (friends)
-
-
-        for n in range (upto): 
-            # calculate deg [n]
-
-            # caculate next degree neighbors & remove those that have already been seen
-            friends = self.next_degree_friends (friends) - visited
-
-            # If there are no more elements in 'friends,' then that means all nodes have been
-            #     visited already. So, break from loop
-            if len (friends) == 0:
-                break
-
-            # add to the set 'visited' the new elements in 'friends'
-            visited.update (friends)
-
-            # append to list 'deg' the set of nodes 'friends' of degree of separation n.
-            deg.append (friends)
-
-        return deg
-    
+     
     def add_edges (self, edges):
         """
         Given a list of edges, iteratively apples add_edge to each.
@@ -252,13 +199,14 @@ class Graph:
        
     def add_edge (self, edge):
         """
-        Adds an edge = (x, y) pair to the adjacency list self.adj_1.
+        Adds an edge = (x, y) pair to the adjacency list self.adj and makes correction to self.adj2.
         """
         
         assert len (edge) == 2, "Each edge needs to be of length 2."
 
         x, y = edge
-
+        
+        # corrections to first order adjacency list
         # add y to x
         if x in self.adj:
             self.adj [x].add (y)
@@ -266,7 +214,7 @@ class Graph:
             #print ('New node ', x, 'graph length: ', self.num_nodes)
             self.num_nodes += 1
             self.adj [x] = {y}
-
+        # add x to y
         if y in self.adj:
             self.adj [y].add (x)
         else:
@@ -274,13 +222,17 @@ class Graph:
             self.num_nodes += 1
             self.adj [y] = {x}
 
+        # corrections to 2nd order adjacency list
+        self.adj2 [x].update (self.adj [y])
+        self.adj2 [y].update (self.adj [x])
+        
     
     def is_self_consistent (self):
         """
         Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj_list' and
         any nodes x, y of G, y is in adj_list [x] iff x is in adj_list [y].
         """
-        for adj_list in [self.adj, self.adj_1, self.adj_2, self.adj_4]:
+        for adj_list in [self.adj, self.adj2]:
             for key in adj_list.keys ():
                 for elem in adj_list [key]:
                     if key not in adj_list [elem]:
@@ -289,51 +241,60 @@ class Graph:
     
     def build_adj (self):
         """
-        Builds the inclusive adjacency list from the exclusive version.
+        Builds the inclusive 1st and 2nd order adjacency lists from the exclusive 1st order version.
         """
-        # just add the node itself to its adjacency list
+        # Make adj inclusive (just add the node itself to its adjacency list)
         for key in self.adj.keys ():
-            self.adj_1 [key] = {key} | self.adj [key]
-    
-    def build_2nd_order_adj_lists (self):
-        self.adj_2 = next_order_adj_list (self.adj)
+            self.adj [key].add (key)
 
-    def make_2nd_order_exclusive (self):
-        for key in self.adj_2.keys ():
-            self.adj_2 [key] = {key} | self.adj_2 [key]
-            
-    def build_higher_order_adj_lists (self):
-        self.adj_4 = next_order_adj_list (self.adj_2)
+        # Build inclusive 2nd order adjacency list by squaring the inclusive 1st order version
+        for key in self.adj.keys ():
+            tmp = set ()
+            for node in self.adj [key]:
+                tmp.update (self.adj [node])
+            self.adj2 [key] = tmp
+        
         
     def copy (self):
         res = Graph ()
         res.num_nodes = self.num_nodes
-        res.adj_1 = self.adj_1.copy ()
-        res.adj_2 = self.adj_2.copy ()
-        res.adj_4 = self.adj_4.copy ()
+        res.adj  = self.adj.copy ()
+        res.adj2 = self.adj2.copy ()
         return res
-        
-def next_order_adj_list (adj_list):
-    next_adj_list = {}
-    for key in adj_list.keys ():
-        tmp = set ()
-        for node in adj_list [key]:
-            # inclusive higher order adjacency list (e.g. if H is a 2nd-order
-            # adjacency list, then for node x of graph G, H [x] is the set of
-            # nodes separated from node x by degrees 1 and 2.
-            tmp.update (adj_list [node])
-            
-            # exclusive higher order adjacency version
-            # tmp.update (adj_list [node] - adj_list [key])
-        next_adj_list [key] = tmp
-    return next_adj_list
 
-def multiply (A, B):
-    C = {}
-    for j in B.keys ():
-        tmp = set ()
-        for k in B [j]:
-            tmp.update (A [j])
-        C [j] = tmp
-    return C
-        
+    def if_lte_deg2 (self, pair):
+        a, b = pair
+
+        if a == b:
+            return True
+        elif a not in self.adj.keys () or b not in self.adj.keys (): # >= one of (a, b) is not a node in graph 'adj'
+            return False
+        else:
+            # since adj2 is inclusive, this will return true if dist(a,b) <= 2
+            return a in self.adj2 [b]    
+
+
+    def if_lte_deg4 (self, pair):
+        a, b = pair
+
+        if a == b:
+            return True
+        elif a not in self.adj.keys () or b not in self.adj.keys ():  # >= one of (a, b) is not a node in graph 'adj'
+            return False
+        elif a in self.adj2 [b]:  # a & b are deg 2 apart or fewer
+            return True
+        else:                # test if a & b are degs 3 or 4 apart
+            for key in self.adj2 [b]:
+                if a in self.adj2 [key]:
+                    return True
+            return False
+    
+    def is_inclusive (self):
+        for key in self.adj.keys ():
+            if key not in self.adj2 [key]:
+                print ('key {} is not found in adj [key]'.format (key))
+                return False
+            if not self.adj [key].issubset (self.adj2 [key]):
+                print ('adj [{}] is not a subset of adj [key]'.format (key))
+                return False
+        return True
