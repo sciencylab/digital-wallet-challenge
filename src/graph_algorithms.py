@@ -1,4 +1,4 @@
-import gc
+#import gc
 
 class Graph:
     """
@@ -19,7 +19,7 @@ class Graph:
     13. if_lte_deg1 (self, pair)
     14. if_lte_deg2 (self, pair)
     15. if_lte_deg4 (self, pair)
-    16. is_inclusive (self)
+    16. friends_of_friends (self, start)
     """
     
     
@@ -29,10 +29,7 @@ class Graph:
         # exclusive 1st order adjacency list
         self.adj = adj_dict
         
-        # 2nd order adjacency list
-        self.adj2 = {}
-        
-        # build the 2 adjacency lists
+        # turn the adjacency list into an inclusive one (includes 0th order nodes)
         self.build_adj ()
             
     def __str__ (self):
@@ -91,6 +88,9 @@ class Graph:
 
     def distance (self, pair, n = -1):
         """
+        Note: This method uses breadth first search (BFS) and can be slow. Should modify to the
+              bi-directional version for speed.
+        
         From adjacency list 'self.adj', this figures out whether the pair '(a, b)' are neighbors 
         of degree fewer than 'n.'
 
@@ -151,6 +151,9 @@ class Graph:
     
     def distance_lte (self, pair, n):
         """
+        Note: This method uses breadth first search (BFS) and can be slow. Should modify to the
+              bi-directional version for speed.
+              
         Note: distance_lte "(if) distance is less than n."
         
         From adjacency list 'self.adj', this figures out whether the pair '(a, b)' are neighbors 
@@ -213,134 +216,145 @@ class Graph:
        
     def add_edge (self, edge):
         """
-        Adds an edge = (x, y) pair to the adjacency list self.adj and makes correction to self.adj2.
+        Adds an edge = (x, y) pair to the adjacency list self.adj.
         """
         
         assert len (edge) == 2, "Each edge needs to be of length 2."
 
         x, y = edge
-        xy_not_adj = False
         
         # corrections to first order adjacency list
         # add y to x
         if x in self.adj:
-            if y not in self.adj [x]:
-                xy_not_adj = True
-                self.adj [x].add (y)
-                self.adj2 [x].add (y)
+            self.adj [x].add (y)
         else: # x in neither adj nor adj2
-            xy_not_adj = True
             self.num_nodes += 1
             self.adj [x]  = {x, y}
-            self.adj2 [x] = {x, y}
         
         # add x to y
         if y in self.adj:
-            if xy_not_adj:
-                self.adj [y].add (x)
-                self.adj [x].add (y)
+            self.adj [y].add (x)
         else: # y in neither adj nor adj2
-            xy_not_adj = True
             self.num_nodes += 1
             self.adj [y]  = {x, y}
-            self.adj2 [y] = {x, y}
 
-        # corrections to 2nd order adjacency list
-        if xy_not_adj:
-            self.adj2 [x].update (self.adj [y])
-            self.adj2 [y].update (self.adj [x])
-            for key in self.adj [x]:
-                self.adj2 [key].add (y)
-            for key in self.adj [y]:
-                self.adj2 [key].add (x)
-        gc.collect (2)
+        # gc.collect (2)
         
     def is_self_consistent (self):
         """
-        Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj_list' and
-        any nodes x, y of G, y is in adj_list [x] iff x is in adj_list [y].
+        Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj' and
+        any nodes x, y of G, y is in adj [x] iff x is in adj [y].
         """
-        for adj_list in [self.adj, self.adj2]:
-            for key in adj_list.keys ():
-                for elem in adj_list [key]:
-                    if key not in adj_list [elem]:
-                        return False
+        for key in self.adj.keys ():
+            for elem in self.adj [key]:
+                if key not in self.adj [elem]:
+                    return False
         return True
     
     def build_adj (self):
         """
-        Builds the inclusive 1st and 2nd order adjacency lists from the exclusive 1st order version.
+        Turns the exclusive 1st order adjacency lists into the inclusive version.
         """
         # Make adj inclusive (just add the node itself to its adjacency list)
         for key in self.adj.keys ():
             self.adj [key].add (key)
 
-        # Build inclusive 2nd order adjacency list by squaring the inclusive 1st order version
-        for key in self.adj.keys ():
-            tmp = set ()
-            for node in self.adj [key]:
-                tmp.update (self.adj [node])
-            self.adj2 [key] = tmp
         
         
     def copy (self):
+        """
+        Returns a copy of the Graph object.
+        
+        Note: Let g be some instance of Graph, then the difference between
+                   1. x = g
+                   2. y = g.copy ()
+              is that x is just another name for g, whereas y is a new object. If x were
+              to be modified, g would also be modified since they're the same object.
+        """
         res = Graph ()
         res.num_nodes = self.num_nodes
         res.adj  = self.adj.copy ()
-        res.adj2 = self.adj2.copy ()
         return res
 
 
     def if_lte_deg1 (self, pair):
+        """
+        Returns True if the pair is separated by 0 or 1 degree and False otherwise.
+        """
         a, b = pair
 
+        # 0th degree check
         if a == b:
             return True
+        
+        # check if a & b are both in the graph
         elif a not in self.adj.keys ():
             return False
         elif b not in self.adj.keys ():
             return False
+        
+        # 1st degree check
         else:
             return a in self.adj [b]
         
         
     def if_lte_deg2 (self, pair):
+        """
+        Returns True if the pair is separated by 0, 1, or 2 degree and False otherwise.
+        """
         a, b = pair
 
+        # 0th degree check
         if a == b:
             return True
+        
+        # check if a & b are both in the graph
         elif a not in self.adj.keys ():
             return False
         elif b not in self.adj.keys ():
             return False
+        
+        # 1st degree check
+        elif a in self.adj [b]:
+            return True
+        # 2nd degree check
         else:
-            # since adj2 is inclusive, this will return true if dist(a,b) <= 2
-            return a in self.adj2 [b]    
+            return len (self.adj [a] & self.adj [b]) != 0 # see if their intersection is empty
 
 
     def if_lte_deg4 (self, pair):
+        """
+        Returns True if the pair is separated by 0, 1, 2, 3, or 4 degree and False otherwise.
+        """
         a, b = pair
-
+        
+        # zeroth degree check
         if a == b:
             return True
+        
+        # check if a & b are both in the graph
         elif a not in self.adj.keys ():
             return False
         elif b not in self.adj.keys ():
             return False
-        elif a in self.adj2 [b]:  # a & b are deg 2 apart or fewer
+        
+        # 1st degree check
+        elif a in self.adj [b]:
+            return True
+        # 2nd to 4th degree check
+        elif len (self.adj [a] & self.adj [b]) != 0:   # see if their intersection is empty
             return True
         else:                # test if a & b are degs 3 or 4 apart
-            for key in self.adj2 [b]:
-                if a in self.adj2 [key]:
-                    return True
-            return False
+            ffa = self.next_degree_friends (self.adj [a])  # friends of friends of a
+            ffb = self.next_degree_friends (self.adj [b])  # friends of friends of b
+            return len (ffa & ffb) != 0 # see if their intersection is empty
+
     
-    def is_inclusive (self):
-        for key in self.adj.keys ():
-            if key not in self.adj2 [key]:
-                print ('key {} is not found in adj [key]'.format (key))
-                return False
-            if not self.adj [key].issubset (self.adj2 [key]):
-                print ('adj [{}] is not a subset of adj [key]'.format (key))
-                return False
-        return True
+    def friends_of_friends (self, start):
+        """
+        Given a node, 'start,' outputs the set of nodes separated from 'start' by no more than a distance of 2.
+        That is, the output set includes nodes of 0, 1, and 2 degrees of separation from 'start.'
+        """
+        assert start in self.adj.keys ()
+        
+        return self.next_degree_friends (self.adj [start])
