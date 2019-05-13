@@ -1,4 +1,11 @@
-#import gc
+def copy_adj_list (adj):
+    """
+    Use this method to make a "deep" copy of an adjacent list. Don't use .cop
+    """
+    res  = {}
+    for key in adj.keys ():
+        res [key] = adj [key].copy ()
+    return res
 
 class Graph:
     """
@@ -20,17 +27,25 @@ class Graph:
     14. if_lte_deg2 (self, pair)
     15. if_lte_deg4 (self, pair)
     16. friends_of_friends (self, start)
+    17. is_equal_to (self, graph)
+    18. degree_lte (self, pair, degree)
     """
     
     
     def __init__ (self, adj_dict = {}):
+        def build_adj (adj):
+            for key in adj.keys ():
+                adj [key].add (key)
+            return adj
+        
         self.num_nodes = len (adj_dict.keys ())
         
         # exclusive 1st order adjacency list
-        self.adj = adj_dict
+        self.adj = build_adj (adj_dict)
         
         # turn the adjacency list into an inclusive one (includes 0th order nodes)
-        self.build_adj ()
+        #self.build_adj ()
+        return None
             
     def __str__ (self):
         return str (self.adj)
@@ -223,33 +238,35 @@ class Graph:
 
         x, y = edge
         
-        # corrections to first order adjacency list
-        # add y to x
-        if x in self.adj:
-            self.adj [x].add (y)
-        else: # x in neither adj nor adj2
+        # Add node if not in graph
+        if x not in self.adj.keys ():
             self.num_nodes += 1
-            self.adj [x]  = {x, y}
+            self.adj [x] = set ()
+        if y not in self.adj.keys ():
+            self.num_nodes += 1
+            self.adj [y] = set ()
         
-        # add x to y
-        if y in self.adj:
-            self.adj [y].add (x)
-        else: # y in neither adj nor adj2
-            self.num_nodes += 1
-            self.adj [y]  = {x, y}
-
-        # gc.collect (2)
+        # add edge
+        self.adj [x].update (set (edge))
+        self.adj [y].update (set (edge))
+        
+        return None
+        
         
     def is_self_consistent (self):
         """
-        Checks graph for self-consistency by making sure that it is symmetric: For adjacency list 'adj' and
-        any nodes x, y of G, y is in adj [x] iff x is in adj [y].
+        Checks graph for self-consistency by making sure that it is symmetric: For 
+        adjacency list 'adj' and any nodes x, y of G, y is in adj [x] iff x is in adj [y].
         """
-        for key in self.adj.keys ():
-            for elem in self.adj [key]:
-                if key not in self.adj [elem]:
-                    return False
-        return True
+        try:
+            for key in self.adj.keys ():
+                for elem in self.adj [key]:
+                    if key not in self.adj [elem]:
+                        print ('key {} not in adj [{}]'.format (key, elem))
+                        return False
+            return True
+        except:
+            print ("Self-consistency error: ", key, elem)
     
     def build_adj (self):
         """
@@ -259,7 +276,7 @@ class Graph:
         for key in self.adj.keys ():
             self.adj [key].add (key)
 
-        
+        return None
         
     def copy (self):
         """
@@ -273,7 +290,7 @@ class Graph:
         """
         res = Graph ()
         res.num_nodes = self.num_nodes
-        res.adj  = self.adj.copy ()
+        res.adj = copy_adj_list (self.adj)
         return res
 
 
@@ -283,73 +300,62 @@ class Graph:
         """
         a, b = pair
 
-        # 0th degree check
-        if a == b:
-            return True
-        
         # check if a & b are both in the graph
-        elif a not in self.adj.keys ():
+        if a not in self.adj.keys ():
             return False
         elif b not in self.adj.keys ():
             return False
         
-        # 1st degree check
-        else:
-            return a in self.adj [b]
-        
-        
+        # 0th and 1st degree check
+        return a in self.adj [b]
+     
+    
     def if_lte_deg2 (self, pair):
         """
         Returns True if the pair is separated by 0, 1, or 2 degree and False otherwise.
         """
         a, b = pair
 
-        # 0th degree check
-        if a == b:
-            return True
-        
         # check if a & b are both in the graph
-        elif a not in self.adj.keys ():
+        if a not in self.adj.keys ():
             return False
         elif b not in self.adj.keys ():
             return False
         
-        # 1st degree check
+        # 0th and 1st degree check
         elif a in self.adj [b]:
             return True
+        
         # 2nd degree check
-        else:
-            return len (self.adj [a] & self.adj [b]) != 0 # see if their intersection is empty
-
-
+        return len (self.adj [a] & self.adj [b]) != 0 # see if their intersection is empty
+    
+    
     def if_lte_deg4 (self, pair):
         """
         Returns True if the pair is separated by 0, 1, 2, 3, or 4 degree and False otherwise.
         """
         a, b = pair
         
-        # zeroth degree check
-        if a == b:
-            return True
-        
         # check if a & b are both in the graph
-        elif a not in self.adj.keys ():
+        if a not in self.adj.keys ():
             return False
         elif b not in self.adj.keys ():
             return False
         
-        # 1st degree check
+        # 0th and 1st degree check
         elif a in self.adj [b]:
             return True
-        # 2nd to 4th degree check
-        elif len (self.adj [a] & self.adj [b]) != 0:   # see if their intersection is empty
+        
+        # 2nd degree check
+        elif len (self.adj [a] & self.adj [b]) != 0: # see if their intersection is empty
             return True
-        else:                # test if a & b are degs 3 or 4 apart
-            ffa = self.next_degree_friends (self.adj [a])  # friends of friends of a
-            ffb = self.next_degree_friends (self.adj [b])  # friends of friends of b
-            return len (ffa & ffb) != 0 # see if their intersection is empty
-
-    
+        
+        # 3rd and 4th degree checks
+        ffa = self.next_degree_friends (self.adj [a])  # friends of friends of a
+        ffb = self.next_degree_friends (self.adj [b])  # friends of friends of b
+        return len (ffa & ffb) != 0 # see if their intersection is empty
+        
+        
     def friends_of_friends (self, start):
         """
         Given a node, 'start,' outputs the set of nodes separated from 'start' by no more than a distance of 2.
@@ -358,3 +364,27 @@ class Graph:
         assert start in self.adj.keys ()
         
         return self.next_degree_friends (self.adj [start])
+    
+    def is_equal_to (self, graph):
+        return self.adj == graph.adj
+    
+    def degree_lte (self, pair, degree):
+        """
+        Tests if a given pair is separated by <= n degrees. Note: n can only be 0, 1, 2, or 4.
+        Returns True/False.
+        """
+        assert degree in {0, 1, 2, 4}, "degree needs to be either 0, 1, 2, or 4."
+        
+        x, y = pair
+        
+        if degree == 0:
+            return x == y
+        elif degree == 1:
+            return self.if_lte_deg1 (pair)
+        elif degree == 2:
+            return self.if_lte_deg2 (pair)
+        else: # degree == 4
+            return self.if_lte_deg4 (pair)
+        
+        # should not reach this return statement
+        return None
