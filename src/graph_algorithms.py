@@ -29,22 +29,29 @@ class Graph:
     16. friends_of_friends (self, start)
     17. is_equal_to (self, graph)
     18. degree_lte (self, pair, degree)
+    19. initialize_from_edges (self, edges)
     """
     
     
-    def __init__ (self, adj_dict = {}):
-        def build_adj (adj):
-            for key in adj.keys ():
-                adj [key].add (key)
-            return adj
+    def __init__ (self, edges = {}):
+        d = {}  # the adjacency list
+    
+        for pair in edges:
+            x, y = pair
+
+            # confirm x & y are in d. if not, initialize singleton set
+            if x not in d: d [x] = {x}
+            if y not in d: d [y] = {y}
+
+            # Add x & y as neighbors, but first making sure the info is new and not redundant
+            d [x].add (y)
+            d [y].add (x)
         
-        self.num_nodes = len (adj_dict.keys ())
+
+        # inclusive 1st order adjacency list
+        self.adj = d
+        self.num_nodes = len (d)
         
-        # exclusive 1st order adjacency list
-        self.adj = build_adj (adj_dict)
-        
-        # turn the adjacency list into an inclusive one (includes 0th order nodes)
-        #self.build_adj ()
         return None
             
     def __str__ (self):
@@ -239,10 +246,10 @@ class Graph:
         x, y = edge
         
         # Add node if not in graph
-        if x not in self.adj.keys ():
+        if x not in self.adj:
             self.num_nodes += 1
             self.adj [x] = set ()
-        if y not in self.adj.keys ():
+        if y not in self.adj:
             self.num_nodes += 1
             self.adj [y] = set ()
         
@@ -388,3 +395,4 @@ class Graph:
         
         # should not reach this return statement
         return None
+    

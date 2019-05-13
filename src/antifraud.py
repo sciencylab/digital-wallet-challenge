@@ -1,113 +1,121 @@
+from graph_algorithms import Graph
+from read_processing_files import read_into_list_of_tuples
+import sys
 
-def read_adj_dict_from_file (name, verbose = False):
-    """
-    Read in csv file 'name' of payment transfers and output adjacency list of
-    id's of people involved.
-    """
-    id1, id2 = read_into_lists (name, verbose)
-    return adjacency_dict (id1, id2)
+###############################
+# read files
+###############################
 
-def read_into_lists (name, verbose = False):
-    """
-    Read in csv file 'name' of payment transfers and outputs the columns id1, id2
-    as lists
-    """
-    id1 = []
-    id2 = []
+# folder names
+input_dir = "../paymo_input/"
+output_dir = "../paymo_output/"
 
-    with open (name, 'r') as file:
-
-        file.readline () # don't need the header
-
-        for line in file:
-            try:  # for when the row actually conforms to the header
-                
-                # split up into list
-                ids = line.split (',') 
-                
-                # column 2 & 3 are ids, ignore the rest of data
-                ids = list (map (lambda x: int (x), ids [1:3]))
-
-                # read the data into lists
-                id1.append (ids [0])
-                id2.append (ids [1])
-                
-            except: # for when something's screwy
-                # see what's wrong
-                # lol. It's the same 5 or so lines over and over again
-                # changed default value to false since these lines are meant
-                # to be ignored.
-                if verbose: 
-                    print (line)
-                
-    return id1, id2
-
-def read_into_list_of_tuples (name, verbose = False):
-    """
-    Read in csv file 'name' of payment transfers and outputs the columns id1, id2
-    as list of tuples.
-    """
-    stream = []
-
-    with open (name, 'r') as file:
-
-        file.readline () # don't need the header
-
-        for line in file:
-            try:  # for when the row actually conforms to the header
-                
-                # split up into list
-                ids = line.split (',') 
-                
-                # column 2 & 3 are ids, ignore the rest of data
-                ids = list (map (lambda x: int (x), ids [1:3]))
-
-                # read the data into list as a pair
-                stream.append ((ids [0], ids [1]))
-                
-            except: # for when something's screwy
-                # see what's wrong
-                # lol. It's the same 5 or so lines over and over again
-                # changed default value to false since these lines are meant
-                # to be ignored.
-                if verbose: 
-                    print (line)
-                
-    return stream
-
-def adjacency_dict (list1, list2):
-    """
-    Input: list1, list2. The n-th element of list1 is assumed to have either
-        given payment to or received payment from the n-th element of list2.
-        From this info, an adjacency list 'd' is created.
-    Example: If list1[10] = 'a' and list2 [10] = 'b,' then money is assumed
-        to have exchanged between 'a' and 'b.' And so, d [b] will contain 'a'
-        and d [a] will contain 'b.'
+# input files
+batch_name  = input_dir + sys.argv [1]
+stream_name = input_dir + sys.argv [2]
+# output files
+out1 = output_dir + sys.argv [3]
+out2 = output_dir + sys.argv [4]
+out3 = output_dir + sys.argv [5]
+# verbosity
+if len (sys.argv) >= 7 and sys.argv [6] == "True":
+        verbose = True
+else:
+    verbose = False
     
-    
-    
-    Test Case:
-    
-    adjacency_dict (['a', 'a', 'b', 'c', 'd'],
-                    ['b', 'c', 'c', 'd', 'e']) == {'a': ['b', 'c'],
-                                                   'b': ['a', 'c'],
-                                                   'c': ['a', 'b', 'd'],
-                                                   'd': ['c', 'e'],
-                                                   'e': ['d']}
-    """
-    assert len (list1) == len (list2), "The 2 lists' lengths are not equal."
+# def function that prints only if verbose is turned on
+def print_if_verbose (message, end = '\n'):
+    if verbose:
+        print (message, end = end)
+    else:
+        None
+    return None
 
-    d = {}  # the adjacency list
-    
-    for idx in range (len (list1)):
-        # get the idx-th item of list1 and list2
-        x, y = list1 [idx], list2 [idx]
+print_if_verbose ('\ninput files: {}, {}'.format (batch_name, stream_name))
+print_if_verbose ('\noutput files: {}, {}, {}'.format (out1, out2, out3))
+
+
+# read batch
+print_if_verbose ("\nparsing {} into a list to tuples...".format (batch_name), end = '')
+batch0 = read_into_list_of_tuples (batch_name)
+print_if_verbose ("finished")
+
+# converting batch into a graph
+print_if_verbose ("\ncreating a graph of transactions based on {}...".format (batch_name), end = '')
+batch = Graph (batch0)
+print_if_verbose ("finished")
+
+# read stream
+print_if_verbose ("\nparsing {} into a list to tuples...".format (stream_name), end = '')
+stream = read_into_list_of_tuples (stream_name)
+print_if_verbose ("finished")
+
+
+
+
+
+
+###############################
+# process stream file according to the different features
+###############################
+end = '\n'
+msg_true = "trusted" + end
+msg_false = "unverified" + end
+
+## Feature 1
+print_if_verbose ("\nBeginning feature 1: transactions separated by no more than 1 degree is considered verified")
+
+# Make deep copy of the batch graph
+feature = batch.copy ()
+
+with open (out1, 'w') as output:
+    for pair in stream:
+        # First, check if prior transaction exists. If so, no need to add edge to graph
+        if feature.degree_lte (pair, degree = 1): # transaction existed
+            output.write (msg_true)
+        else:
+            output.write (msg_false)
+            
+            # add edge after determining degree of separation
+            feature.add_edge (pair)
+print_if_verbose ('finished')
         
-        # confirm x & y are in d. if not, initialize to empty list
-        if x not in d: d [x] = set ()
-        if y not in d: d [y] = set ()
-        
-        # Add x & y as neighbors, but first making sure the info is new and not redundant
-        if y not in d [x]: d [x].add (y)
-        if x not in d [y]: d [y].add (x)
-    return d
+## Feature 2
+print_if_verbose ("\nBeginning feature 2: transactions separated by no more than 2 degree is considered verified")
+# Make deep copy of the batch graph
+feature = batch.copy ()
+
+with open (out2, 'w') as output:
+    for pair in stream:
+        # First, check if prior transaction exists. If so, no need to add edge to graph
+        if feature.degree_lte (pair, degree = 1):
+            output.write (msg_true)
+        else:
+            # determine if <= 2 degrees of separation
+            lte = feature.degree_lte (pair, degree = 2)
+            output.write (msg_true if lte else msg_false)
+            
+            # add edge after determining degree of separation
+            feature.add_edge (pair)
+print_if_verbose ('finished')
+
+
+
+## Feature 3
+print_if_verbose ("\nBeginning feature 3: transactions separated by no more than 4 degree is considered verified")
+# Make deep copy of the batch graph
+feature = batch.copy ()
+
+with open (out3, 'w') as output:
+    for pair in stream:
+        # First, check if prior transaction exists. If so, no need to add edge to graph
+        if feature.degree_lte (pair, degree = 1):
+            output.write (msg_true)
+        else:
+            # determine if <= 4 degrees of separation
+            lte = feature.degree_lte (pair, degree = 4)
+            output.write (msg_true if lte else msg_false)
+
+            # add edge after determining degree of separation
+            feature.add_edge (pair)
+print_if_verbose ('finished')
