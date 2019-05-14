@@ -176,7 +176,7 @@ class Graph:
         Note: This method uses breadth first search (BFS) and can be slow. Should modify to the
               bi-directional version for speed.
               
-        Note: distance_lte "(if) distance is less than n."
+        Note: distance_lte "(if) distance is less than or equal to n."
         
         From adjacency list 'self.adj', this figures out whether the pair '(a, b)' are neighbors 
         of degree fewer than 'n.'
