@@ -114,4 +114,4 @@ Since when errors occur, I find it helpful to be able to interact with the progr
 - test-distance_functions.ipynb
 - test-features.ipynb
 
-There is no current plan to automate the tests in the style Insight wants since this is not for a current challenge and won't be submitted.
+I expect to finish automating the tests in the style Insight wants by the end of May 14th, 2019.
