@@ -108,10 +108,8 @@ Their trade-offs are as follows.
 
 ## Tests
 
-Since when errors occur, I find it helpful to be able to interact with the program to probe the problem, the tests have not yet been automated. Instead they are contained in the jupyter notebooks:
-- test-graph_creation.ipynb
-- test-deep_copy.ipynb
-- test-distance_functions.ipynb
-- test-features.ipynb
-
-I expect to finish automating the tests in the style Insight wants by the end of May 14th, 2019.
+To run tests, starting from the root folder,
+```bash
+cd insight_testsuite/
+./run_tests.sh
+```
