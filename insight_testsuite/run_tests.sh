@@ -98,7 +98,7 @@ function run_all_tests {
   # Loop through all tests
   for test_folder in ${TEST_FOLDERS}; do
     # echo "$test_folder"
-    # setup_testing_input_output
+    setup_testing_input_output
     cd ${GRADER_ROOT}/temp
     bash run.sh 2>&1
     cd ../
