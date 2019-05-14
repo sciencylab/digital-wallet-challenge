@@ -1,6 +1,6 @@
 def copy_adj_list (adj):
     """
-    Use this method to make a "deep" copy of an adjacent list. Don't use .cop
+    Use this method to make a "deep" copy of an adjacent list. Don't use .copy ()
     """
     res  = {}
     for key in adj.keys ():
@@ -176,7 +176,7 @@ class Graph:
         Note: This method uses breadth first search (BFS) and can be slow. Should modify to the
               bi-directional version for speed.
               
-        Note: distance_lte "(if) distance is less than n."
+        Note: distance_lte "(if) distance is less than or equal to n."
         
         From adjacency list 'self.adj', this figures out whether the pair '(a, b)' are neighbors 
         of degree fewer than 'n.'
