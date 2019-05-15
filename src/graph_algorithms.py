@@ -357,8 +357,12 @@ class Graph:
         elif len (self.adj [a] & self.adj [b]) != 0: # see if their intersection is empty
             return True
         
-        # 3rd and 4th degree checks
+        # 3rd degree checks
         ffa = self.next_degree_friends (self.adj [a])  # friends of friends of a
+        if len (ffa & self.adj [b]) != 0:
+            return True
+        
+        # 4th degree check
         ffb = self.next_degree_friends (self.adj [b])  # friends of friends of b
         return len (ffa & ffb) != 0 # see if their intersection is empty
         
